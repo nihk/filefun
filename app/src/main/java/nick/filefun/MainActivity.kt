@@ -23,7 +23,7 @@ class MainActivity : AppCompatActivity(R.layout.main_activity) {
             ) {
                 fragment<PermissionsFragment>(PermissionsFragment.Navigation.Destination.id) {
                     action(PermissionsFragment.Navigation.Action.granted) {
-                        destinationId = CreateFileFragment.Navigation.Destination.id
+                        destinationId = FilesDirFragment.Navigation.Destination.id
                         navOptions {
                             popUpTo(PermissionsFragment.Navigation.Destination.id) {
                                 inclusive = true
@@ -31,7 +31,7 @@ class MainActivity : AppCompatActivity(R.layout.main_activity) {
                         }
                     }
                 }
-                fragment<CreateFileFragment>(CreateFileFragment.Navigation.Destination.id)
+                fragment<FilesDirFragment>(FilesDirFragment.Navigation.Destination.id)
             }
         }
     }
