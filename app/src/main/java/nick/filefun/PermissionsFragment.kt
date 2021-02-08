@@ -50,10 +50,10 @@ class PermissionsFragment : Fragment() {
     }
 
     companion object {
-        private val REQUESTED_PERMISSIONS = arrayOf(
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            Manifest.permission.MANAGE_EXTERNAL_STORAGE
+        private val REQUESTED_PERMISSIONS = arrayOf<String>(
+//            Manifest.permission.READ_EXTERNAL_STORAGE,
+//            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+//            Manifest.permission.MANAGE_EXTERNAL_STORAGE
         )
     }
 }
