@@ -11,4 +11,11 @@
         android:layout_margin="8dp"
         android:text="App-specific files using java.io.File API" />
 
+    <Button
+        android:id="@+id/media_store"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"
+        android:text="Media Store data using ContentProvider" />
+
 </LinearLayout>

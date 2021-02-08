@@ -14,6 +14,9 @@ class MainFragment : Fragment(R.layout.main_fragment) {
         binding.appSpecificFiles.setOnClickListener {
             findNavController().navigate(Navigation.Action.toAppSpecificFiles)
         }
+        binding.mediaStore.setOnClickListener {
+            findNavController().navigate(Navigation.Action.toMediaStoreData)
+        }
     }
 
     object Navigation {
@@ -22,6 +25,7 @@ class MainFragment : Fragment(R.layout.main_fragment) {
         }
         object Action {
             val toAppSpecificFiles = IdGenerator.next()
+            val toMediaStoreData = IdGenerator.next()
         }
     }
 }

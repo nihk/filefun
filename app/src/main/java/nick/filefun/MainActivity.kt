@@ -25,9 +25,13 @@ class MainActivity : AppCompatActivity(R.layout.main_activity) {
                     action(MainFragment.Navigation.Action.toAppSpecificFiles) {
                         destinationId = FilesFragment.Navigation.Destination.id
                     }
+                    action(MainFragment.Navigation.Action.toMediaStoreData) {
+                        destinationId = MediaStoreFragment.Navigation.Destination.id
+                    }
                 }
                 fragment<FilesFragment>(FilesFragment.Navigation.Destination.id)
                 fragment<PermissionsFragment>(PermissionsFragment.Navigation.Destination.id)
+                fragment<MediaStoreFragment>(MediaStoreFragment.Navigation.Destination.id)
             }
         }
     }
