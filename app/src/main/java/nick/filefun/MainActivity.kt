@@ -19,29 +19,20 @@ class MainActivity : AppCompatActivity(R.layout.main_activity) {
         navHostFragment.navController.apply {
             graph = createGraph(
                 id = Navigation.id,
-                startDestination = FilesDirFragment.Navigation.Destination.id,
+                startDestination = MainFragment.Navigation.Destination.id,
             ) {
-                fragment<FilesDirFragment>(FilesDirFragment.Navigation.Destination.id)
-                fragment<PermissionsFragment>(PermissionsFragment.Navigation.Destination.id) {
-                    action(Navigation.Action.emptyPermissionsGranted) {
-                        destinationId = -1 // todo
-                        navOptions {
-                            popUpTo(PermissionsFragment.Navigation.Destination.id) {
-                                inclusive = true
-                            }
-                        }
+                fragment<MainFragment>(MainFragment.Navigation.Destination.id) {
+                    action(MainFragment.Navigation.Action.toAppSpecificFiles) {
+                        destinationId = FilesFragment.Navigation.Destination.id
                     }
                 }
+                fragment<FilesFragment>(FilesFragment.Navigation.Destination.id)
+                fragment<PermissionsFragment>(PermissionsFragment.Navigation.Destination.id)
             }
         }
     }
 
     object Navigation {
         val id = IdGenerator.next()
-
-        object Action {
-            // todo: use actual relevant
-            val emptyPermissionsGranted = IdGenerator.next()
-        }
     }
 }

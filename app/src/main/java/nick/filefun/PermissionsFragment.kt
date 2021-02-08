@@ -11,21 +11,17 @@ import androidx.navigation.fragment.findNavController
 
 class PermissionsFragment : Fragment() {
 
-    private val navAction: Int get() = run {
-        val navAction = arguments?.getInt(KEY_NAV_ACTION, -1)!!
-        if (navAction == -1) error("Nav action missing from Fragment arguments")
-        navAction
-    }
     private val requestedPermissions: List<String> get() = arguments?.getStringArrayList(KEY_REQUESTED_PERMISSIONS)!!
+    private val navAction: Int get() = arguments?.getInt(KEY_NAV_ACTION, -1)!!
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (hasPermissions()) {
-            navigateToCamera()
+            executeNavAction()
         } else {
             val permissionRequest = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
                 if (permissions.all { it.value }) {
-                    navigateToCamera()
+                    executeNavAction()
                 } else {
                     Toast.makeText(requireContext(), "Permissions were not granted :(", Toast.LENGTH_LONG)
                         .show()
@@ -37,8 +33,12 @@ class PermissionsFragment : Fragment() {
         }
     }
 
-    private fun navigateToCamera() {
-        findNavController().navigate(navAction)
+    private fun executeNavAction() {
+        if (navAction == POP_ACTION) {
+            findNavController().popBackStack()
+        } else {
+            findNavController().navigate(navAction)
+        }
     }
 
     private fun hasPermissions(): Boolean {
@@ -54,10 +54,11 @@ class PermissionsFragment : Fragment() {
     }
 
     companion object {
-        private const val KEY_NAV_ACTION = "nav_action"
         private const val KEY_REQUESTED_PERMISSIONS = "requested_permissions"
+        private const val KEY_NAV_ACTION = "nav_action"
+        private const val POP_ACTION = -1
 
-        fun bundle(navAction: Int, requestedPermissions: List<String>): Bundle {
+        fun bundle(requestedPermissions: List<String>, navAction: Int = POP_ACTION): Bundle {
             return bundleOf(
                 KEY_REQUESTED_PERMISSIONS to requestedPermissions,
                 KEY_NAV_ACTION to navAction

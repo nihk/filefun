@@ -3,6 +3,7 @@ package nick.filefun
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Bundle
+import android.os.Environment
 import android.os.FileObserver
 import android.view.LayoutInflater
 import android.view.View
@@ -16,28 +17,42 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import nick.filefun.databinding.FilesDirFragmentBinding
+import nick.filefun.databinding.FilesFragmentBinding
 import nick.filefun.databinding.SavedFileItemBinding
 import java.io.File
 import kotlin.coroutines.CoroutineContext
 
-class FilesDirFragment : Fragment(R.layout.files_dir_fragment) {
+class FilesFragment : Fragment(R.layout.files_fragment) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val binding = FilesDirFragmentBinding.bind(view)
-        val factory = FilesDirViewModel.Factory(view.context.applicationContext)
-        val viewModel = ViewModelProvider(this, factory).get(FilesDirViewModel::class.java)
+        val binding = FilesFragmentBinding.bind(view)
+        val factory = FilesViewModel.Factory(FilesDirectory.InternalAppSpecificStorage, view.context.applicationContext)
+        val viewModel = ViewModelProvider(this, factory).get(FilesViewModel::class.java)
 
         binding.saveFile.setOnClickListener {
             viewModel.saveFile(
                 name = binding.fileNameInput.text.toString(),
                 text = binding.fileContent.text.toString()
             )
+        }
+
+        binding.filesGroup.setOnCheckedChangeListener { _, checkedId ->
+            val filesDirectory = when (checkedId) {
+                binding.filesDir.id -> FilesDirectory.InternalAppSpecificStorage
+                binding.cacheDir.id -> FilesDirectory.InternalAppSpecificCache
+                binding.externalFilesDir.id -> FilesDirectory.ExternalAppSpecificRoot
+                binding.externalCacheDir.id -> FilesDirectory.ExternalAppSpecificCache
+                binding.externalFilesDocuments.id -> FilesDirectory.ExternalAppSpecificDocuments
+                else -> error("Unknown id: $checkedId")
+            }
+
+            viewModel.setFilesDir(filesDirectory)
         }
 
         val adapter = SavedFilesAdapter(viewModel::deleteFile)
@@ -55,22 +70,59 @@ class FilesDirFragment : Fragment(R.layout.files_dir_fragment) {
     }
 }
 
+sealed class FilesDirectory {
+    abstract fun from(context: Context): File?
+
+    object InternalAppSpecificStorage : FilesDirectory() {
+        override fun from(context: Context): File? = context.filesDir
+    }
+    object InternalAppSpecificCache : FilesDirectory() {
+        override fun from(context: Context) = context.cacheDir
+    }
+    object ExternalAppSpecificRoot : FilesDirectory() {
+        override fun from(context: Context) = context.getExternalFilesDir(null)
+    }
+    object ExternalAppSpecificCache : FilesDirectory() {
+        override fun from(context: Context) = context.externalCacheDir
+    }
+    object ExternalAppSpecificDocuments : FilesDirectory() {
+        override fun from(context: Context) = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
+    }
+}
+
 @SuppressLint("StaticFieldLeak")
-class FilesDirViewModel(
+class FilesViewModel(
+    initialFilesDirectory: FilesDirectory,
     private val context: Context,
     private val ioContext: CoroutineContext = Dispatchers.IO
 ) : ViewModel() {
 
-    private val filesDir: File by lazy {
-        // Alternatively, use context.cacheDir for temporary files
-        context.filesDir
-    }
-
     private val savedFiles = MutableStateFlow<List<SavedFile>>(emptyList())
     fun savedFiles(): StateFlow<List<SavedFile>> = savedFiles
 
+    private var filesDir: File = getFilesDir(initialFilesDirectory)
+
+    private var filesChangesJob: Job? = null
+
     init {
-        savedFilesChanges()
+        observeFilesChanges()
+    }
+
+    private fun getFilesDir(filesDirectory: FilesDirectory): File {
+        return filesDirectory.from(context)!!
+    }
+
+    fun setFilesDir(filesDirectory: FilesDirectory) {
+        val file = getFilesDir(filesDirectory)
+        if (filesDir == file) return
+
+        filesChangesJob?.cancel()
+        filesDir = file
+        observeFilesChanges()
+    }
+
+    private fun observeFilesChanges() {
+        filesChangesJob = savedFilesChanges()
             .onStart { emit(readSavedFiles()) }
             .onEach { savedFiles.value = it }
             .flowOn(ioContext)
@@ -107,18 +159,23 @@ class FilesDirViewModel(
     }
 
     private fun readSavedFiles(): List<SavedFile> {
-        return filesDir.listFiles()!!.map { file: File ->
-            SavedFile(
-                name = file.name,
-                content = file.readText()
-            )
-        }
+        return filesDir.listFiles()!!
+            .filter { file -> file.isFile }
+            .map { file: File ->
+                SavedFile(
+                    name = file.name,
+                    content = file.readText()
+                )
+            }
     }
 
-    class Factory(private val context: Context) : ViewModelProvider.Factory {
+    class Factory(
+        private val initialFilesDirectory: FilesDirectory,
+        private val context: Context
+    ) : ViewModelProvider.Factory {
         override fun <T : ViewModel?> create(modelClass: Class<T>): T {
             @Suppress("UNCHECKED_CAST")
-            return FilesDirViewModel(context) as T
+            return FilesViewModel(initialFilesDirectory, context) as T
         }
     }
 }
@@ -154,8 +211,8 @@ class SavedFilesAdapter(
 ) : ListAdapter<SavedFile, SavedFileViewHolder>(SavedFileDiffCallback) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SavedFileViewHolder {
         return LayoutInflater.from(parent.context)
-            .let { SavedFileItemBinding.inflate(it) }
-            .let { SavedFileViewHolder(it) }
+            .let { inflater -> SavedFileItemBinding.inflate(inflater) }
+            .let { binding -> SavedFileViewHolder(binding) }
     }
 
     override fun onBindViewHolder(holder: SavedFileViewHolder, position: Int) {
