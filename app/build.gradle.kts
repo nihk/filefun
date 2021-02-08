@@ -39,7 +39,6 @@ dependencies {
     implementation(Dependency.Moshi.runtime)
     implementation(Dependency.Room.runtime)
     implementation(Dependency.Room.roomKtx)
-    implementation(Dependency.timber)
     implementation(Dependency.okhttpLoggingInterceptor)
     implementation(Dependency.multidex)
     implementation(Dependency.coil)

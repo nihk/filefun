@@ -1,15 +1,22 @@
 package nick.filefun
 
-import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 
 class PermissionsFragment : Fragment() {
+
+    private val navAction: Int get() = run {
+        val navAction = arguments?.getInt(KEY_NAV_ACTION, -1)!!
+        if (navAction == -1) error("Nav action missing from Fragment arguments")
+        navAction
+    }
+    private val requestedPermissions: List<String> get() = arguments?.getStringArrayList(KEY_REQUESTED_PERMISSIONS)!!
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,16 +33,16 @@ class PermissionsFragment : Fragment() {
                 }
             }
 
-            permissionRequest.launch(REQUESTED_PERMISSIONS)
+            permissionRequest.launch(requestedPermissions.toTypedArray())
         }
     }
 
     private fun navigateToCamera() {
-        findNavController().navigate(Navigation.Action.granted)
+        findNavController().navigate(navAction)
     }
 
     private fun hasPermissions(): Boolean {
-        return REQUESTED_PERMISSIONS.all { permission ->
+        return requestedPermissions.all { permission ->
             ContextCompat.checkSelfPermission(requireContext(), permission) == PackageManager.PERMISSION_GRANTED
         }
     }
@@ -44,16 +51,17 @@ class PermissionsFragment : Fragment() {
         object Destination {
             val id = IdGenerator.next()
         }
-        object Action {
-            val granted = IdGenerator.next()
-        }
     }
 
     companion object {
-        private val REQUESTED_PERMISSIONS = arrayOf<String>(
-//            Manifest.permission.READ_EXTERNAL_STORAGE,
-//            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-//            Manifest.permission.MANAGE_EXTERNAL_STORAGE
-        )
+        private const val KEY_NAV_ACTION = "nav_action"
+        private const val KEY_REQUESTED_PERMISSIONS = "requested_permissions"
+
+        fun bundle(navAction: Int, requestedPermissions: List<String>): Bundle {
+            return bundleOf(
+                KEY_REQUESTED_PERMISSIONS to requestedPermissions,
+                KEY_NAV_ACTION to navAction
+            )
+        }
     }
 }

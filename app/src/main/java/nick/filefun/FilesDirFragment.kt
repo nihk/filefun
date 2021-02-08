@@ -61,7 +61,10 @@ class FilesDirViewModel(
     private val ioContext: CoroutineContext = Dispatchers.IO
 ) : ViewModel() {
 
-    private val filesDir: File by lazy { context.filesDir }
+    private val filesDir: File by lazy {
+        // Alternatively, use context.cacheDir for temporary files
+        context.filesDir
+    }
 
     private val savedFiles = MutableStateFlow<List<SavedFile>>(emptyList())
     fun savedFiles(): StateFlow<List<SavedFile>> = savedFiles
@@ -89,6 +92,11 @@ class FilesDirViewModel(
     private fun savedFilesChanges(): Flow<List<SavedFile>> = callbackFlow {
         val fileObserver = object : FileObserver(filesDir) {
             override fun onEvent(event: Int, path: String?) {
+                val wroteFile = event and (DELETE or CLOSE_WRITE) != 0
+                // Even just accessing/opening a file will hit this callback, which is not interesting.
+                if (!wroteFile) {
+                    return
+                }
                 offer(readSavedFiles())
             }
         }
