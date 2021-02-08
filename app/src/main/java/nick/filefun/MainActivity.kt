@@ -1,16 +1,42 @@
 package nick.filefun
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import androidx.lifecycle.ViewModel
+import androidx.appcompat.app.AppCompatActivity
+import androidx.navigation.createGraph
+import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.fragment.fragment
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(R.layout.main_activity) {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        createNavGraph()
     }
-}
 
-class MainViewModel : ViewModel() {
+    private fun createNavGraph() {
+        val navHostFragment = supportFragmentManager
+            .findFragmentById(R.id.navHostContainer) as NavHostFragment
 
+        navHostFragment.navController.apply {
+            graph = createGraph(
+                id = Navigation.id,
+                startDestination = PermissionsFragment.Navigation.Destination.id
+            ) {
+                fragment<PermissionsFragment>(PermissionsFragment.Navigation.Destination.id) {
+                    action(PermissionsFragment.Navigation.Action.granted) {
+                        destinationId = CreateFileFragment.Navigation.Destination.id
+                        navOptions {
+                            popUpTo(PermissionsFragment.Navigation.Destination.id) {
+                                inclusive = true
+                            }
+                        }
+                    }
+                }
+                fragment<CreateFileFragment>(CreateFileFragment.Navigation.Destination.id)
+            }
+        }
+    }
+
+    object Navigation {
+        val id = IdGenerator.next()
+    }
 }
