@@ -18,15 +18,15 @@ class PermissionsFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (hasPermissions()) {
-            executeNavAction()
+            navigateToDestination()
         } else {
             val permissionRequest = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
                 if (permissions.all { it.value }) {
-                    executeNavAction()
+                    navigateToDestination()
                 } else {
                     Toast.makeText(requireContext(), "Permissions were not granted :(", Toast.LENGTH_LONG)
                         .show()
-                    requireActivity().finish()
+                    findNavController().popBackStack()
                 }
             }
 
@@ -34,7 +34,7 @@ class PermissionsFragment : Fragment() {
         }
     }
 
-    private fun executeNavAction() {
+    private fun navigateToDestination() {
         val navOptions = NavOptions.Builder()
             .setPopUpTo(findNavController().currentDestination?.id!!, true)
             .build()

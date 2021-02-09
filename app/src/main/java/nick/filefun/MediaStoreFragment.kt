@@ -1,9 +1,11 @@
 package nick.filefun
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.RecoverableSecurityException
 import android.content.ContentUris
 import android.content.Context
+import android.content.IntentSender
 import android.database.ContentObserver
 import android.net.Uri
 import android.os.Build
@@ -12,6 +14,9 @@ import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -31,11 +36,17 @@ import kotlin.coroutines.CoroutineContext
 
 class MediaStoreFragment : Fragment(R.layout.media_store_fragment) {
 
+    private lateinit var viewModel: MediaStoreViewModel
+    private val deleteRequestLauncher = createDeleteRequestLauncher()
+    // Workaround for being unable to stash/receive this value in the activity result sender/callback,
+    // FIXME: This won't survive Fragment recreation -- use SavedState to persist.
+    private var mediaToDelete: Media? = null
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val binding = MediaStoreFragmentBinding.bind(view)
         val factory = MediaStoreViewModel.Factory(view.context, MediaType.Images)
-        val viewModel = ViewModelProvider(this, factory).get(MediaStoreViewModel::class.java)
+        viewModel = ViewModelProvider(this, factory).get(MediaStoreViewModel::class.java)
 
         binding.mediaStoreGroup.setOnCheckedChangeListener { _, checkedId ->
             val mediaType = when (checkedId) {
@@ -53,6 +64,22 @@ class MediaStoreFragment : Fragment(R.layout.media_store_fragment) {
         viewModel.medias()
             .onEach { adapter.submitList(it) }
             .launchIn(viewLifecycleOwner.lifecycleScope)
+
+        viewModel.deleteRequests()
+            .onEach { deleteRequest ->
+                mediaToDelete = deleteRequest.media
+                deleteRequestLauncher.launch(IntentSenderRequest.Builder(deleteRequest.intentSender).build())
+            }
+            .launchIn(viewLifecycleOwner.lifecycleScope)
+    }
+
+    private fun createDeleteRequestLauncher(): ActivityResultLauncher<IntentSenderRequest> {
+        return registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                mediaToDelete?.let(viewModel::delete)
+            }
+            mediaToDelete = null
+        }
     }
 
     object Navigation {
@@ -66,7 +93,7 @@ enum class MediaType(
     val uri: Uri,
     val idCol: String,
     val nameCol: String
-    ) {
+) {
     Images(
         uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
         idCol = MediaStore.Images.Media._ID,
@@ -93,6 +120,9 @@ class MediaStoreViewModel(
 
     private val medias = MutableStateFlow<List<Media>>(emptyList())
     fun medias(): StateFlow<List<Media>> = medias
+
+    private val deleteRequests = MutableSharedFlow<DeleteRequest>()
+    fun deleteRequests(): SharedFlow<DeleteRequest> = deleteRequests
 
     private var mediaType: MediaType = initialMediaType
     private var mediaStoreJob: Job? = null
@@ -142,7 +172,7 @@ class MediaStoreViewModel(
                 val id = cursor.getLong(idCold)
                 val name = cursor.getString(nameCol)
                 medias += Media(
-                    uri = ContentUris.withAppendedId(mediaType.uri,id),
+                    uri = ContentUris.withAppendedId(mediaType.uri, id),
                     name = name
                 )
             }
@@ -162,7 +192,12 @@ class MediaStoreViewModel(
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
                     && throwable is RecoverableSecurityException
                 ) {
-                    // TODO
+                    deleteRequests.emit(
+                        DeleteRequest(
+                            intentSender = throwable.userAction.actionIntent.intentSender,
+                            media = media
+                        )
+                    )
                 } else {
                     throw throwable
                 }
@@ -181,6 +216,11 @@ class MediaStoreViewModel(
         }
     }
 }
+
+data class DeleteRequest(
+    val intentSender: IntentSender,
+    val media: Media
+)
 
 data class Media(
     val uri: Uri,
@@ -204,7 +244,9 @@ object MediaDiffCallback : DiffUtil.ItemCallback<Media>() {
     }
 }
 
-class MediaAdapter(private val delete: (Media) -> Unit) : ListAdapter<Media, MediaViewHolder>(MediaDiffCallback) {
+class MediaAdapter(
+    private val delete: (Media) -> Unit
+) : ListAdapter<Media, MediaViewHolder>(MediaDiffCallback) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MediaViewHolder {
         return LayoutInflater.from(parent.context)
             .let { inflater -> MediaItemBinding.inflate(inflater, parent, false) }
