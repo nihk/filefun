@@ -7,12 +7,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
+import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 
 class PermissionsFragment : Fragment() {
 
-    private val requestedPermissions: List<String> get() = arguments?.getStringArrayList(KEY_REQUESTED_PERMISSIONS)!!
-    private val navAction: Int get() = arguments?.getInt(KEY_NAV_ACTION, -1)!!
+    private val requestedPermissions: List<String> get() = arguments?.getStringArray(KEY_REQUESTED_PERMISSIONS)?.toList()!!
+    private val destinationAfterPermissionsGranted: Int get() = arguments?.getInt(KEY_DESTINATION_AFTER_PERMISSIONS_GRANTED, -1)!!
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,11 +35,10 @@ class PermissionsFragment : Fragment() {
     }
 
     private fun executeNavAction() {
-        if (navAction == POP_ACTION) {
-            findNavController().popBackStack()
-        } else {
-            findNavController().navigate(navAction)
-        }
+        val navOptions = NavOptions.Builder()
+            .setPopUpTo(findNavController().currentDestination?.id!!, true)
+            .build()
+        findNavController().navigate(destinationAfterPermissionsGranted, null, navOptions)
     }
 
     private fun hasPermissions(): Boolean {
@@ -55,13 +55,12 @@ class PermissionsFragment : Fragment() {
 
     companion object {
         private const val KEY_REQUESTED_PERMISSIONS = "requested_permissions"
-        private const val KEY_NAV_ACTION = "nav_action"
-        private const val POP_ACTION = -1
+        private const val KEY_DESTINATION_AFTER_PERMISSIONS_GRANTED = "destination_after_permissions_granted"
 
-        fun bundle(requestedPermissions: List<String>, navAction: Int = POP_ACTION): Bundle {
+        fun bundle(requestedPermissions: List<String>, destinationAfterPermissionsGranted: Int): Bundle {
             return bundleOf(
-                KEY_REQUESTED_PERMISSIONS to requestedPermissions,
-                KEY_NAV_ACTION to navAction
+                KEY_REQUESTED_PERMISSIONS to requestedPermissions.toTypedArray(),
+                KEY_DESTINATION_AFTER_PERMISSIONS_GRANTED to destinationAfterPermissionsGranted
             )
         }
     }

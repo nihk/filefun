@@ -211,7 +211,7 @@ class SavedFilesAdapter(
 ) : ListAdapter<SavedFile, SavedFileViewHolder>(SavedFileDiffCallback) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SavedFileViewHolder {
         return LayoutInflater.from(parent.context)
-            .let { inflater -> SavedFileItemBinding.inflate(inflater) }
+            .let { inflater -> SavedFileItemBinding.inflate(inflater, parent, false) }
             .let { binding -> SavedFileViewHolder(binding) }
     }
 
