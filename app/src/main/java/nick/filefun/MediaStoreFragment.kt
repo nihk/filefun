@@ -80,28 +80,40 @@ class MediaStoreFragment : Fragment(R.layout.media_store_fragment) {
     }
 }
 
-enum class MediaType(
-    val uri: Uri,
-    val idCol: String,
-    val nameCol: String
-) {
-    // Note: apparently only VOLUME_EXTERNAL_PRIMARY can be modified on Android 10.
-    // See: https://developer.android.com/training/data-storage/shared/media#add-item
-    Images(
-        uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-        idCol = MediaStore.Images.Media._ID,
-        nameCol = MediaStore.Images.Media.DISPLAY_NAME
-    ),
-    Video(
-        uri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-        idCol = MediaStore.Video.Media._ID,
-        nameCol = MediaStore.Video.Media.DISPLAY_NAME
-    ),
-    Audio(
-        uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-        idCol = MediaStore.Audio.Media._ID,
-        nameCol = MediaStore.Audio.Media.DISPLAY_NAME
-    )
+sealed class MediaType {
+    abstract val uri: Uri
+    abstract val idCol: String
+    abstract val nameCol: String
+
+    object Images : MediaType() {
+        override val uri: Uri = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        } else {
+            MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+        }
+        override val idCol = MediaStore.Images.Media._ID
+        override val nameCol = MediaStore.Images.Media.DISPLAY_NAME
+    }
+
+    object Video : MediaType() {
+        override val uri: Uri = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        } else {
+            MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+        }
+        override val idCol = MediaStore.Video.Media._ID
+        override val nameCol = MediaStore.Video.Media.DISPLAY_NAME
+    }
+
+    object Audio : MediaType() {
+        override val uri: Uri = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+        } else {
+            MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+        }
+        override val idCol = MediaStore.Audio.Media._ID
+        override val nameCol = MediaStore.Audio.Media.DISPLAY_NAME
+    }
 }
 
 @SuppressLint("StaticFieldLeak")
@@ -187,6 +199,7 @@ class MediaStoreViewModel(
                     && throwable is RecoverableSecurityException
                 ) {
                     handle.set(KEY_URI_TO_DELETE, uri)
+                    // Alternatively, on Android R+ use something like MediaStore.create{Delete|Write}Request to batch permissions.
                     deleteRequests.emit(throwable.userAction.actionIntent.intentSender)
                 } else {
                     throw throwable
