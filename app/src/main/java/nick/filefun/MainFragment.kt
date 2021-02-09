@@ -1,6 +1,7 @@
 package nick.filefun
 
 import android.Manifest
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import androidx.fragment.app.Fragment
@@ -17,7 +18,13 @@ class MainFragment : Fragment(R.layout.main_fragment) {
         }
         binding.mediaStore.setOnClickListener {
             val arguments = PermissionsFragment.bundle(
-                requestedPermissions = listOf(Manifest.permission.READ_EXTERNAL_STORAGE),
+                requestedPermissions = mutableListOf(
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+                ).apply {
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                        add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    }
+                },
                 destinationAfterPermissionsGranted = MediaStoreFragment.Navigation.Destination.id
             )
             findNavController().navigate(PermissionsFragment.Navigation.Destination.id, arguments)

@@ -21,7 +21,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import nick.filefun.databinding.FilesFragmentBinding
 import nick.filefun.databinding.SavedFileItemBinding
 import java.io.File
@@ -74,7 +73,7 @@ sealed class FilesDirectory {
     abstract fun from(context: Context): File?
 
     object InternalAppSpecificStorage : FilesDirectory() {
-        override fun from(context: Context): File? = context.filesDir
+        override fun from(context: Context) = context.filesDir
     }
     object InternalAppSpecificCache : FilesDirectory() {
         override fun from(context: Context) = context.cacheDir
@@ -130,15 +129,15 @@ class FilesViewModel(
     }
 
     fun saveFile(name: String, text: String) {
-        viewModelScope.launch {
-            withContext(ioContext) {
-                File(filesDir, "$name.txt").writeText(text)
-            }
+        viewModelScope.launch(ioContext) {
+            File(filesDir, "$name.txt").writeText(text)
         }
     }
 
     fun deleteFile(savedFile: SavedFile) {
-        File(filesDir, savedFile.name).delete()
+        viewModelScope.launch(ioContext) {
+            File(filesDir, savedFile.name).delete()
+        }
     }
 
     private fun savedFilesChanges(): Flow<List<SavedFile>> = callbackFlow {

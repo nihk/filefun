@@ -1,9 +1,12 @@
 package nick.filefun
 
 import android.annotation.SuppressLint
+import android.app.RecoverableSecurityException
+import android.content.ContentUris
 import android.content.Context
 import android.database.ContentObserver
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.view.LayoutInflater
@@ -21,6 +24,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import nick.filefun.databinding.MediaItemBinding
 import nick.filefun.databinding.MediaStoreFragmentBinding
 import kotlin.coroutines.CoroutineContext
@@ -43,7 +47,7 @@ class MediaStoreFragment : Fragment(R.layout.media_store_fragment) {
             viewModel.setMediaType(mediaType)
         }
 
-        val adapter = MediaAdapter()
+        val adapter = MediaAdapter(viewModel::delete)
         binding.documentsList.adapter = adapter
 
         viewModel.medias()
@@ -60,19 +64,23 @@ class MediaStoreFragment : Fragment(R.layout.media_store_fragment) {
 
 enum class MediaType(
     val uri: Uri,
+    val idCol: String,
     val nameCol: String
     ) {
     Images(
         uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-        nameCol = MediaStore.Images.ImageColumns.DISPLAY_NAME
+        idCol = MediaStore.Images.Media._ID,
+        nameCol = MediaStore.Images.Media.DISPLAY_NAME
     ),
     Video(
         uri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-        nameCol = MediaStore.Video.VideoColumns.DISPLAY_NAME
+        idCol = MediaStore.Video.Media._ID,
+        nameCol = MediaStore.Video.Media.DISPLAY_NAME
     ),
     Audio(
         uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-        nameCol = MediaStore.Audio.AudioColumns.DISPLAY_NAME
+        idCol = MediaStore.Audio.Media._ID,
+        nameCol = MediaStore.Audio.Media.DISPLAY_NAME
     )
 }
 
@@ -128,12 +136,38 @@ class MediaStoreViewModel(
             null,
             null
         )?.use { cursor ->
+            val idCold = cursor.getColumnIndexOrThrow(mediaType.idCol)
+            val nameCol = cursor.getColumnIndexOrThrow(mediaType.nameCol)
             while (cursor.moveToNext()) {
-                val name = cursor.getString(cursor.getColumnIndexOrThrow(mediaType.nameCol))
-                medias += Media(name)
+                val id = cursor.getLong(idCold)
+                val name = cursor.getString(nameCol)
+                medias += Media(
+                    uri = ContentUris.withAppendedId(mediaType.uri,id),
+                    name = name
+                )
             }
         }
         return medias
+    }
+
+    fun delete(media: Media) {
+        viewModelScope.launch(ioContext) {
+            try {
+                context.contentResolver.delete(
+                    media.uri,
+                    null,
+                    null
+                )
+            } catch (throwable: Throwable) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                    && throwable is RecoverableSecurityException
+                ) {
+                    // TODO
+                } else {
+                    throw throwable
+                }
+            }
+        }
     }
 
     class Factory(
@@ -149,12 +183,14 @@ class MediaStoreViewModel(
 }
 
 data class Media(
+    val uri: Uri,
     val name: String
 )
 
 class MediaViewHolder(private val binding: MediaItemBinding) : RecyclerView.ViewHolder(binding.root) {
-    fun bind(media: Media) {
+    fun bind(media: Media, delete: (Media) -> Unit) {
         binding.name.text = media.name
+        binding.delete.setOnClickListener { delete(media) }
     }
 }
 
@@ -168,7 +204,7 @@ object MediaDiffCallback : DiffUtil.ItemCallback<Media>() {
     }
 }
 
-class MediaAdapter : ListAdapter<Media, MediaViewHolder>(MediaDiffCallback) {
+class MediaAdapter(private val delete: (Media) -> Unit) : ListAdapter<Media, MediaViewHolder>(MediaDiffCallback) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MediaViewHolder {
         return LayoutInflater.from(parent.context)
             .let { inflater -> MediaItemBinding.inflate(inflater, parent, false) }
@@ -176,6 +212,6 @@ class MediaAdapter : ListAdapter<Media, MediaViewHolder>(MediaDiffCallback) {
     }
 
     override fun onBindViewHolder(holder: MediaViewHolder, position: Int) {
-        holder.bind(getItem(position))
+        holder.bind(getItem(position), delete)
     }
 }
