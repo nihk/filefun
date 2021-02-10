@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
 import android.os.Bundle
+import android.provider.DocumentsContract
+import android.provider.OpenableColumns
 import android.util.Log
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
@@ -16,9 +18,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import nick.filefun.databinding.SafFragmentBinding
+import java.io.BufferedReader
 import kotlin.coroutines.CoroutineContext
 
 // Read more at: https://commonsware.com/blog/2019/10/19/scoped-storage-stories-saf-basics.html
+// todo: use DocumentFile APIs where appropriate
+// todo: how to create directory?
+// todo: request access/create an entire directory to use
 class SafFragment : Fragment(R.layout.saf_fragment) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -35,26 +41,40 @@ class SafFragment : Fragment(R.layout.saf_fragment) {
                 content = binding.fileContent.text.toString()
             )
             viewModel.saveTextDocument(textDocument)
-            Log.d("asdf", "Saving document to: $uri")
-        }
-
-        binding.saveAs.setOnClickListener {
-            createDocumentLauncher.launch("${binding.fileNameInput.text}.txt")
         }
 
         val openDocumentLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
             viewModel.openTextDocument(uri ?: return@registerForActivityResult)
-            Log.d("asdf", "Opening document: $uri")
+        }
+
+        binding.saveAs.setOnClickListener {
+            val fileName = binding.fileNameInput.text.toString().run {
+                if (!endsWith(".txt")) {
+                    "$this.txt"
+                } else {
+                    this
+                }
+            }
+            createDocumentLauncher.launch(fileName)
         }
 
         binding.open.setOnClickListener {
             openDocumentLauncher.launch(arrayOf("text/*"))
         }
 
+        binding.delete.setOnClickListener {
+            viewModel.delete()
+        }
+
+        binding.update.setOnClickListener {
+            viewModel.update(binding.fileContent.text.toString())
+        }
+
         viewModel.textDocuments()
             .onEach { textDocument ->
                 binding.fileNameInput.setText(textDocument.name)
                 binding.fileContent.setText(textDocument.content)
+                Log.d("asdf", "Opened document: $textDocument")
             }
             .launchIn(viewLifecycleOwner.lifecycleScope)
     }
@@ -72,28 +92,59 @@ data class TextDocument(
     val content: String
 )
 
+val emptyTextDocument = TextDocument(Uri.EMPTY, "", "")
+
+@Suppress("BlockingMethodInNonBlockingContext")
 @SuppressLint("StaticFieldLeak")
 class SafViewModel(
     private val context: Context,
     private val ioContext: CoroutineContext
 ) : ViewModel() {
 
-    private val textDocuments = MutableStateFlow<TextDocument?>(null)
-    fun textDocuments(): Flow<TextDocument> = textDocuments.filterNotNull()
+    private val textDocuments = MutableStateFlow(emptyTextDocument)
+    fun textDocuments(): Flow<TextDocument> = textDocuments
 
     fun openTextDocument(uri: Uri) {
         viewModelScope.launch(ioContext) {
-            @Suppress("BlockingMethodInNonBlockingContext")
-            context.contentResolver.openFileDescriptor(uri, "r")?.use { parcelFileDescriptor ->
+            val textDocumentName = context.contentResolver.query(uri, null, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    cursor.getString(cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME))
+                } else {
+                    null
+                }
+            } ?: error("Couldn't find document name for $uri")
 
+            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                textDocuments.value = TextDocument(
+                    uri = uri,
+                    name = textDocumentName,
+                    content = inputStream.bufferedReader().use(BufferedReader::readText)
+                )
             }
         }
     }
 
     fun saveTextDocument(textDocument: TextDocument) {
         viewModelScope.launch(ioContext) {
-
+            context.contentResolver.openOutputStream(textDocument.uri)?.use { outputStream ->
+                outputStream.bufferedWriter().use { it.write(textDocument.content) }
+            }
+            textDocuments.value = textDocument
         }
+    }
+
+    fun delete() {
+        viewModelScope.launch(ioContext) {
+            DocumentsContract.deleteDocument(
+                context.contentResolver,
+                textDocuments.value.uri
+            )
+            textDocuments.value = emptyTextDocument
+        }
+    }
+
+    fun update(content: String) {
+        saveTextDocument(textDocuments.value.copy(content = content))
     }
 
     class Factory(

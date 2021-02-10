@@ -80,7 +80,6 @@ class MediaStoreFragment : Fragment(R.layout.media_store_fragment) {
     }
 }
 
-// todo: Android R also supports MediaStore.Downloads
 sealed class MediaType {
     abstract val uri: Uri
     abstract val idCol: String
