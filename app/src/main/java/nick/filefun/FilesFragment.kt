@@ -174,7 +174,7 @@ class FilesViewModel(
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel?> create(modelClass: Class<T>): T {
             @Suppress("UNCHECKED_CAST")
-            return FilesViewModel(initialFilesDirectory, context) as T
+            return FilesViewModel(initialFilesDirectory, context.applicationContext) as T
         }
     }
 }

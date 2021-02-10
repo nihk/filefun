@@ -18,4 +18,11 @@
         android:layout_margin="8dp"
         android:text="Media Store using ContentResolver" />
 
+    <Button
+        android:id="@+id/saf"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"
+        android:text="Documents using Storage Access Framework" />
+
 </LinearLayout>

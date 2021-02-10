@@ -25,6 +25,7 @@ class MainActivity : AppCompatActivity(R.layout.main_activity) {
                 fragment<FilesFragment>(FilesFragment.Navigation.Destination.id)
                 fragment<PermissionsFragment>(PermissionsFragment.Navigation.Destination.id)
                 fragment<MediaStoreFragment>(MediaStoreFragment.Navigation.Destination.id)
+                fragment<SafFragment>(SafFragment.Navigation.Destination.id)
             }
         }
     }

@@ -29,6 +29,13 @@ class MainFragment : Fragment(R.layout.main_fragment) {
             )
             findNavController().navigate(PermissionsFragment.Navigation.Destination.id, arguments)
         }
+        binding.saf.setOnClickListener {
+            val arguments = PermissionsFragment.bundle(
+                requestedPermissions = mutableListOf(Manifest.permission.READ_EXTERNAL_STORAGE),
+                destinationAfterPermissionsGranted = SafFragment.Navigation.Destination.id
+            )
+            findNavController().navigate(PermissionsFragment.Navigation.Destination.id, arguments)
+        }
     }
 
     object Navigation {

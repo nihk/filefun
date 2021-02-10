@@ -40,7 +40,7 @@ class MediaStoreFragment : Fragment(R.layout.media_store_fragment) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val binding = MediaStoreFragmentBinding.bind(view)
-        val factory = MediaStoreViewModel.Factory(this, view.context, MediaType.Images)
+        val factory = MediaStoreViewModel.Factory(this, view.context.applicationContext, MediaType.Images)
         viewModel = ViewModelProvider(this, factory).get(MediaStoreViewModel::class.java)
 
         binding.mediaStoreGroup.setOnCheckedChangeListener { _, checkedId ->
@@ -80,6 +80,7 @@ class MediaStoreFragment : Fragment(R.layout.media_store_fragment) {
     }
 }
 
+// todo: Android R also supports MediaStore.Downloads
 sealed class MediaType {
     abstract val uri: Uri
     abstract val idCol: String
@@ -229,7 +230,7 @@ class MediaStoreViewModel(
             handle: SavedStateHandle
         ): T {
             @Suppress("UNCHECKED_CAST")
-            return MediaStoreViewModel(handle, context, initialMediaType, ioContext) as T
+            return MediaStoreViewModel(handle, context.applicationContext, initialMediaType, ioContext) as T
         }
     }
 
