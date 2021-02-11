@@ -33,7 +33,6 @@ import nick.filefun.databinding.SafFragmentBinding
 import java.io.BufferedReader
 import kotlin.coroutines.CoroutineContext
 
-// todo: how to create directory programmatically (without SAF), once persistable URI from SAF is taken?
 class SafFragment : Fragment(R.layout.saf_fragment) {
     lateinit var binding: SafFragmentBinding
     lateinit var viewModel: SafViewModel
@@ -116,6 +115,10 @@ class SafFragment : Fragment(R.layout.saf_fragment) {
         viewModel.documents()
             .onEach { documents -> adapter.submitList(documents) }
             .launchIn(viewLifecycleOwner.lifecycleScope)
+
+        binding.addToOpenedDirectory.setOnClickListener {
+            viewModel.addToOpenedDirectory(binding.fileNameInput.text.toString(), binding.fileContent.text.toString())
+        }
     }
 
     object Navigation {
@@ -152,12 +155,12 @@ class SafViewModel(
     private var openedDirectory: Job? = null
 
     init {
-        prefs.directoryUri?.let { uri ->
+        prefs.openedDirectoryUri?.let { uri ->
             openDirectory(uri)
         }
     }
 
-    private var SharedPreferences.directoryUri: Uri?
+    private var SharedPreferences.openedDirectoryUri: Uri?
         get() = getString("uri", null)?.toUri()
         set(value) {
             edit().putString("uri", value?.toString()).apply()
@@ -177,12 +180,7 @@ class SafViewModel(
 
     fun saveDocument(document: Document) {
         viewModelScope.launch(ioContext) {
-            context.contentResolver.apply {
-                openOutputStream(document.uri)?.use { outputStream ->
-                    outputStream.bufferedWriter().use { it.write(document.content) }
-                }
-                takeAllUriPermissions(document.uri) // Not strictly necessary for this current use case
-            }
+            context.contentResolver.writeStringToUri(document.uri, document.content)
             singleDocument.value = document
         }
     }
@@ -206,7 +204,7 @@ class SafViewModel(
         Log.d("asdf", "Opening directory: $uri")
         openedDirectory?.cancel()
         openedDirectory = watchDirectory(uri)
-            .onStart { prefs.directoryUri = uri }
+            .onStart { prefs.openedDirectoryUri = uri }
             .onStart { context.contentResolver.takeAllUriPermissions(uri) }
             .onStart { emit(queryDirectory(uri)) }
             .onEach { documents.value = it }
@@ -235,6 +233,29 @@ class SafViewModel(
                 name = documentFile.name ?: "Unknown",
                 content = documentFile.type ?: "Unknown"
             )
+        }
+    }
+
+    fun addToOpenedDirectory(name: String, content: String) {
+        viewModelScope.launch(ioContext) {
+            val directory = DocumentFile.fromTreeUri(
+                context,
+                prefs.openedDirectoryUri ?: error("You need to open a directory, first")
+            )!!
+            val createdFile = directory.createFile("text/plain", name)!!
+
+            context.contentResolver.writeStringToUri(createdFile.uri, content)
+            singleDocument.value = Document(
+                uri = createdFile.uri,
+                name = name,
+                content = content
+            )
+        }
+    }
+
+    private fun ContentResolver.writeStringToUri(uri: Uri, content: String) {
+        openOutputStream(uri)?.use { outputStream ->
+            outputStream.bufferedWriter().use { it.write(content) }
         }
     }
 

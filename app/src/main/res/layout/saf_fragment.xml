@@ -66,6 +66,13 @@
             android:layout_margin="8dp"
             android:text="Open directory" />
 
+        <Button
+            android:id="@+id/add_to_opened_directory"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:text="Add to opened directory" />
+
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/documents"
             android:layout_width="match_parent"
