@@ -78,6 +78,10 @@ sealed class FilesDirectory {
     object InternalAppSpecificCache : FilesDirectory() {
         override fun from(context: Context) = context.cacheDir
     }
+    // External storage can provide more space than internal storage, and is potentially removable.
+    // Any other app can technically write to this directory, too. Those other apps would have to know
+    // the correct filepath to do that.
+    // https://developer.android.com/training/data-storage/app-specific#external
     object ExternalAppSpecificRoot : FilesDirectory() {
         override fun from(context: Context) = context.getExternalFilesDir(null)
     }
