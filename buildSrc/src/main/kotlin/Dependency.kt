@@ -9,6 +9,7 @@ object Dependency {
     const val constraintLayout = "androidx.constraintlayout:constraintlayout:${Version.constraintLayout}"
     const val coreKtx = "androidx.core:core-ktx:${Version.coreKtx}"
     const val dataStore = "androidx.datastore:datastore:${Version.dataStore}"
+    const val documentFile = "androidx.documentfile:documentfile:${Version.documentFile}"
     const val hamcrest = "org.hamcrest:hamcrest-all:${Version.hamcrest}"
     const val inject = "javax.inject:javax.inject:${Version.inject}"
     const val junit = "junit:junit:${Version.junit}"

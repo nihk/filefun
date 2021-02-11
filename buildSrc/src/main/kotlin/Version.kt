@@ -18,6 +18,7 @@ object Version {
     const val coroutines = "1.4.2"
     const val dagger = "2.31.2"
     const val dataStore = "1.0.0-alpha06"
+    const val documentFile = "1.0.1"
     const val espresso = "3.3.0-rc01"
     const val exoPlayer = "2.12.3"
     const val fragment = "1.3.0-rc02"

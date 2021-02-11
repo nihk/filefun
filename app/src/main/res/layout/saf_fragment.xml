@@ -1,52 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
 
-    <Button
-        android:id="@+id/open"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Open"
-        android:layout_margin="8dp" />
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
-    <EditText
-        android:id="@+id/file_name_input"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="8dp"
-        android:hint="Filename" />
+        <Button
+            android:id="@+id/open"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:text="Open one file" />
 
-    <EditText
-        android:id="@+id/file_content"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="8dp"
-        android:gravity="top|start"
-        android:hint="File content" />
+        <EditText
+            android:id="@+id/file_name_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:hint="Filename" />
 
-    <Button
-        android:id="@+id/save_as"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Save as"
-        android:layout_margin="8dp" />
+        <EditText
+            android:id="@+id/file_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:gravity="top|start"
+            android:hint="File content" />
 
-    <Button
-        android:id="@+id/delete"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Delete"
-        android:layout_margin="8dp" />
+        <Button
+            android:id="@+id/save_as"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:text="Save as" />
 
-    <Button
-        android:id="@+id/update"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Update"
-        android:layout_margin="8dp" />
+        <Button
+            android:id="@+id/delete"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:text="Delete" />
 
-</LinearLayout>
+        <Button
+            android:id="@+id/update"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:text="Update" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_margin="8dp"
+            android:background="@color/teal_200" />
+
+        <Button
+            android:id="@+id/open_directory"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:text="Open directory" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/documents"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            tools:listitem="@layout/document_item" />
+
+    </LinearLayout>
+
+</ScrollView>

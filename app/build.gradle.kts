@@ -29,6 +29,7 @@ dependencies {
     implementation(Dependency.coil)
     implementation(Dependency.security)
     implementation(Dependency.savedState)
+    implementation(Dependency.documentFile)
 
     kapt(Dependency.Dagger.compiler)
     kapt(Dependency.Dagger.Hilt.compiler)
